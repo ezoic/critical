@@ -122,9 +122,9 @@ function getOptions(options = {}) {
     forceInclude: value.include,
     timeout: DEFAULT.timeout,
     maxEmbeddedBase64Length: value.maxImageFileSize,
-    html: opts.html || '',
-    htmlContentURL: opts.htmlContentURL || '',
-    blockRequestURLs: opts.blockRequestURLs || [],
+    html: value.html,
+    htmlContentURL: value.htmlContentURL,
+    blockRequestURLs: value.blockRequestURLs,
     ...penthouse,
   };
 
