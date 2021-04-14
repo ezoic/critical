@@ -50,6 +50,31 @@ test('Returns config object', () => {
   });
 });
 
+test('Returns SUPER config object', () => {
+  const config = getOptions({src: '...', htmlContentURL: '...', blockRequestURLs: ['...']});
+  expect(config).toMatchObject({
+    src: '...',
+    width: DEFAULT.width,
+    height: DEFAULT.height,
+    htmlContentURL: '...',
+    blockRequestURLs: ['...'],
+    maxImageFileSize: DEFAULT.maxImageFileSize,
+    minify: DEFAULT.minify,
+    strict: DEFAULT.strict,
+    extract: DEFAULT.extract,
+    concurrency: DEFAULT.concurrency,
+    inlineImages: DEFAULT.inlineImages,
+    include: DEFAULT.include,
+    inline: DEFAULT.inline,
+    dimensions: [{width: DEFAULT.width, height: DEFAULT.height}],
+    penthouse: {
+      forceInclude: DEFAULT.include,
+      timeout: DEFAULT.timeout,
+      maxEmbeddedBase64Length: DEFAULT.maxImageFileSize,
+    },
+  });
+});
+
 test('Target config on passed string', () => {
   expect(getOptions({src: '...', target: 'test.css'})).toHaveProperty('target', {css: 'test.css'});
   expect(getOptions({src: '...', target: 'test.html'})).toHaveProperty('target', {html: 'test.html'});

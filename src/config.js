@@ -40,6 +40,8 @@ const schema = Joi.object()
     user: Joi.string(),
     pass: Joi.string(),
     request: Joi.object().unknown(true),
+    htmlContentURL: Joi.string(),
+    blockRequestURLs: Joi.array(),
     penthouse: Joi.object()
       .keys({
         url: Joi.any().forbidden(),
@@ -49,9 +51,6 @@ const schema = Joi.object()
         timeout: Joi.number().default(DEFAULT.timeout),
         forceInclude: Joi.any(),
         maxEmbeddedBase64Length: Joi.number(),
-        html: Joi.any().forbidden(),
-        htmlContentURL: Joi.any().forbidden(),
-        blockRequestURLs: Joi.any().forbidden(),
       })
       .unknown(true),
     rebase: [
