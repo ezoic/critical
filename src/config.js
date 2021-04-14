@@ -49,6 +49,9 @@ const schema = Joi.object()
         timeout: Joi.number().default(DEFAULT.timeout),
         forceInclude: Joi.any(),
         maxEmbeddedBase64Length: Joi.number(),
+        html: Joi.any().forbidden(),
+        htmlContentURL: Joi.any().forbidden(),
+        blockRequestURLs: Joi.any().forbidden(),
       })
       .unknown(true),
     rebase: [
