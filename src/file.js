@@ -890,7 +890,7 @@ async function getDocumentFromSource(html, options = {}) {
   const {rebase = {}, base} = options;
   const document = await vinylize({html}, options);
 
-  document.stylesheets = await getStylesheetHrefs(document);
+  document.stylesheets = await getResolvedStylesheetHrefs(document, options);
   document.virtualPath = rebase.to || (await getDocumentPath(document, options));
   document.cwd = base || process.cwd();
 
@@ -910,6 +910,22 @@ async function getDocumentFromSource(html, options = {}) {
   document.cleanup = cleanup;
 
   return document;
+}
+
+function getResolvedStylesheetHrefs(file, options) {
+  if (!isVinyl(file)) {
+    throw new Error('Parameter file needs to be a vinyl object');
+  }
+  const stylesheets = oust.raw(file.contents.toString(), 'stylesheets');
+  const preloads = oust.raw(file.contents.toString(), 'preload');
+  return [...stylesheets, ...preloads]
+    .filter((link) => link.$el.attr('media') !== 'print' && Boolean(link.value))
+    .map((link) => {
+      if (link.value.startsWith("http://" || link.value.startsWith("https://"))) return link.value;
+      let a = new URL(options.htmlContentURL);
+      let b = new URL(link.value, a);
+      return b.href;
+    });
 }
 
 module.exports = {
