@@ -4,7 +4,8 @@ const path = require('path');
 const os = require('os');
 const url = require('url');
 const fs = require('fs');
-const {promisify} = require('util');
+const CleanCSS = require('clean-css');
+const { promisify } = require('util');
 const findUp = require('find-up');
 const makeDir = require('make-dir');
 const globby = require('globby');
@@ -19,8 +20,8 @@ const parseCssUrls = require('css-url-parser');
 const tempy = require('tempy');
 const slash = require('slash');
 const debug = require('debug')('critical:file');
-const {mapAsync, filterAsync, reduceAsync, forEachAsync} = require('./array');
-const {FileNotFoundError} = require('./errors');
+const { mapAsync, filterAsync, reduceAsync, forEachAsync } = require('./array');
+const { FileNotFoundError } = require('./errors');
 
 const BASE_WARNING = `${chalk.yellow('Warning:')} Missing base path. Consider 'base' option. https://goo.gl/PwvFVb`;
 
@@ -72,7 +73,7 @@ function urlParse(str = '') {
     return new URL(str, 'https://ba.se');
   }
 
-  return {pathname: str};
+  return { pathname: str };
 }
 
 /**
@@ -98,8 +99,8 @@ function getFileUri(file) {
  */
 function urlResolve(from = '', to = '') {
   if (isRemote(from)) {
-    const {href: base} = urlParse(from);
-    const {href} = new URL(to, base);
+    const { href: base } = urlParse(from);
+    const { href } = new URL(to, base);
     return href;
   }
 
@@ -144,11 +145,11 @@ async function fileExists(href, options = {}) {
   }
 
   if (isRemote(href)) {
-    const {request = {}} = options;
+    const { request = {} } = options;
     const method = request.method || 'head';
     try {
-      const response = await fetch(href, {...options, request: {...request, method}});
-      const {statusCode} = response;
+      const response = await fetch(href, { ...options, request: { ...request, method } });
+      const { statusCode } = response;
 
       if (method === 'head') {
         return Number.parseInt(statusCode, 10) < 400;
@@ -225,7 +226,7 @@ async function resolve(href, search = [], options = {}) {
  * @param {string} base Critical base option
  * @returns {Promise<[string]>} Found files
  */
-function glob(pattern, {base} = {}) {
+function glob(pattern, { base } = {}) {
   // Evaluate globs based on base path
   const patterns = Array.isArray(pattern) ? pattern : [pattern];
   // Prepend base if it's not empty & not remote
@@ -253,7 +254,7 @@ function glob(pattern, {base} = {}) {
 async function rebaseAssets(css, from, to, method = 'rebase') {
   let rebased = css.toString();
 
-  debug('Rebase assets', {from, to});
+  debug('Rebase assets', { from, to });
 
   if (/\/$/.test(to)) {
     to += 'temp.html';
@@ -264,7 +265,7 @@ async function rebaseAssets(css, from, to, method = 'rebase') {
   }
 
   if (isRemote(from)) {
-    const {pathname} = urlParse(from);
+    const { pathname } = urlParse(from);
     from = pathname;
   }
 
@@ -280,13 +281,13 @@ async function rebaseAssets(css, from, to, method = 'rebase') {
     };
 
     const result = await postcss()
-      .use(postcssUrl({url: transform}))
-      .process(css, {from, to});
+      .use(postcssUrl({ url: transform }))
+      .process(css, { from, to });
     rebased = result.css;
   } else if (from && to) {
     const result = await postcss()
-      .use(postcssUrl({url: method}))
-      .process(css, {from, to});
+      .use(postcssUrl({ url: method }))
+      .process(css, { from, to });
     rebased = result.css;
   }
 
@@ -309,8 +310,8 @@ const token = (user, pass) => Buffer.from([user, pass].join(':')).toString('base
  * @returns {Promise<Buffer|response>} Resolves to fetched content or response object for HEAD request
  */
 async function fetch(uri, options = {}, secure = true) {
-  const {user, pass, userAgent, request: requestOptions = {}} = options;
-  const {headers = {}, method = 'get', https} = requestOptions;
+  const { user, pass, userAgent, request: requestOptions = {} } = options;
+  const { headers = {}, method = 'get', https } = requestOptions;
   let resourceUrl = uri;
   let protocolRelative = false;
 
@@ -320,7 +321,7 @@ async function fetch(uri, options = {}, secure = true) {
     resourceUrl = urlResolve(`http${secure ? 's' : ''}://te.st`, uri);
   }
 
-  requestOptions.https = {rejectUnauthorized: true, ...(https || {})};
+  requestOptions.https = { rejectUnauthorized: true, ...(https || {}) };
   if (user && pass) {
     headers.Authorization = `Basic ${token(user, pass)}`;
   }
@@ -329,10 +330,10 @@ async function fetch(uri, options = {}, secure = true) {
     headers['User-Agent'] = userAgent;
   }
 
-  debug(`Fetching resource: ${resourceUrl}`, {...requestOptions, headers});
+  debug(`Fetching resource: ${resourceUrl}`, { ...requestOptions, headers });
 
   try {
-    const response = await got(resourceUrl, {...requestOptions, headers});
+    const response = await got(resourceUrl, { ...requestOptions, headers });
     if (method === 'head') {
       return response;
     }
@@ -397,11 +398,11 @@ function getAssets(file) {
  * @returns {Promise<string>} Computed path
  */
 async function getDocumentPath(file, options = {}) {
-  let {base} = options;
+  let { base } = options;
 
   // Check remote
   if (file.remote) {
-    let {pathname} = file.urlObj;
+    let { pathname } = file.urlObj;
     if (/\/$/.test(pathname)) {
       pathname += 'index.html';
     }
@@ -467,8 +468,8 @@ async function getDocumentPath(file, options = {}) {
  * @returns {string} Path to css (can be remote or local relative to document base)
  */
 function getRemoteStylesheetPath(fileObj, documentObj, filename) {
-  let {hostname: styleHost, port: stylePort, pathname} = fileObj;
-  const {hostname: docHost, port: docPort} = documentObj || {};
+  let { hostname: styleHost, port: stylePort, pathname } = fileObj;
+  const { hostname: docHost, port: docPort } = documentObj || {};
 
   if (filename) {
     pathname = joinPath(path.dirname(pathname), path.basename(filename));
@@ -490,7 +491,7 @@ function getRemoteStylesheetPath(fileObj, documentObj, filename) {
  * @returns {Promise<string>} Computed path
  */
 function getStylesheetPath(document, file, options = {}) {
-  let {base} = options;
+  let { base } = options;
 
   // Check remote
   if (file.remote) {
@@ -510,7 +511,7 @@ function getStylesheetPath(document, file, options = {}) {
 
   // Try to compute path based on document link tags with same name
   const stylesheet = document.stylesheets.find((href) => {
-    const {pathname} = urlParse(href);
+    const { pathname } = urlParse(href);
     const name = path.basename(pathname);
     return name === path.basename(file.path);
   });
@@ -563,10 +564,10 @@ function getStylesheetPath(document, file, options = {}) {
  * @returns {Promise<[string]>} List of asset paths
  */
 async function getAssetPaths(document, file, options = {}, strict = true) {
-  const {base, rebase = {}, assetPaths = []} = options;
-  const {history = [], url: docurl = '', urlObj} = document;
-  const {from, to} = rebase;
-  const {pathname: urlPath} = urlObj || {};
+  const { base, rebase = {}, assetPaths = [] } = options;
+  const { history = [], url: docurl = '', urlObj } = document;
+  const { from, to } = rebase;
+  const { pathname: urlPath } = urlObj || {};
   const [docpath] = history;
 
   if (isVinyl(file)) {
@@ -598,7 +599,7 @@ async function getAssetPaths(document, file, options = {}, strict = true) {
       base && docpath && path.join(base, path.dirname(docpath)),
       base && to && path.join(base, path.dirname(to)),
       base && from && path.join(base, path.dirname(from)),
-      base && isRelative(file) && hops ? path.join(base, ...Array.from({length: hops}).fill('tmpdir'), file) : '',
+      base && isRelative(file) && hops ? path.join(base, ...Array.from({ length: hops }).fill('tmpdir'), file) : '',
       process.cwd(),
     ]),
   ];
@@ -618,7 +619,7 @@ async function getAssetPaths(document, file, options = {}, strict = true) {
       return [...result, cwd];
     }
 
-    const up = await findUp(first, {cwd, type: 'directory'});
+    const up = await findUp(first, { cwd, type: 'directory' });
     if (up) {
       const upDir = path.dirname(up);
 
@@ -647,14 +648,14 @@ async function getAssetPaths(document, file, options = {}, strict = true) {
  * @returns {Promise<Vinyl>} The vinyl object
  */
 async function vinylize(src, options = {}) {
-  const {filepath, html} = src;
-  const {rebase = {}} = options;
+  const { filepath, html } = src;
+  const { rebase = {} } = options;
   const file = new Vinyl();
   file.cwd = '/';
   file.remote = false;
 
   if (html) {
-    const {to} = rebase;
+    const { to } = rebase;
     file.contents = Buffer.from(html);
     file.path = to || '';
     file.virtualPath = to || '';
@@ -685,7 +686,7 @@ async function vinylize(src, options = {}) {
  * @returns {Promise<Vinyl>} Vinyl representation fo the stylesheet
  */
 async function getStylesheet(document, filepath, options = {}) {
-  const {rebase = {}, css, strict} = options;
+  const { rebase = {}, css, strict } = options;
   const originalPath = filepath;
   const exists = await fileExists(filepath, options);
 
@@ -708,7 +709,10 @@ async function getStylesheet(document, filepath, options = {}) {
     filepath = path.resolve(filepath);
   }
 
-  const file = await vinylize({filepath}, options);
+  const file = await vinylize({ filepath }, options);
+
+  var output = new CleanCSS({}).minify(file.contents);
+  file.contents = Buffer.from(output.styles, "utf-8");
 
   // Restore original path for local files referenced from document and not from options
   if (!isRemote(originalPath) && !css) {
@@ -744,7 +748,7 @@ async function getStylesheet(document, filepath, options = {}) {
   } else if (document.virtualPath) {
     file.contents = await rebaseAssets(file.contents, rebase.from || stylepath, rebase.to || document.virtualPath);
   } else if (document.remote) {
-    const {pathname} = document.urlObj;
+    const { pathname } = document.urlObj;
     file.contents = await rebaseAssets(file.contents, rebase.from || stylepath, rebase.to || pathname);
 
     // Make images absolute if we have an absolute positioned stylesheet
@@ -768,7 +772,7 @@ async function getStylesheet(document, filepath, options = {}) {
  * @returns {Promise<string>} Css string unoptimized, Multiple stylesheets are concatenated with EOL
  */
 async function getCss(document, options = {}) {
-  const {css} = options;
+  const { css } = options;
   let stylesheets = [];
 
   if (css) {
@@ -809,7 +813,7 @@ async function preparePenthouseData(document) {
     }, './')
     .replace(/\.\.\//g, 'sub/');
   const dir = path.join(tempy.directory(), subfolders);
-  const filename = path.basename(tempy.file({extension: 'html'}));
+  const filename = path.basename(tempy.file({ extension: 'html' }));
   const file = path.join(dir, filename);
 
   const htmlContent = document.contents.toString();
@@ -846,13 +850,13 @@ async function preparePenthouseData(document) {
  * @returns {Promise<Vinyl>} Vinyl representation of HTML document
  */
 async function getDocument(filepath, options = {}) {
-  const {rebase = {}, base} = options;
+  const { rebase = {}, base } = options;
 
   if (!isVinyl(filepath) && !isRemote(filepath) && !fs.existsSync(filepath) && base) {
     filepath = joinPath(base, filepath);
   }
 
-  const document = await vinylize({filepath}, options);
+  const document = await vinylize({ filepath }, options);
 
   document.stylesheets = await getStylesheetHrefs(document);
   document.virtualPath = rebase.to || (await getDocumentPath(document, options));
@@ -887,8 +891,8 @@ async function getDocument(filepath, options = {}) {
  * @returns {Promise<*>} Vinyl representation of HTML document
  */
 async function getDocumentFromSource(html, options = {}) {
-  const {rebase = {}, base} = options;
-  const document = await vinylize({html}, options);
+  const { rebase = {}, base } = options;
+  const document = await vinylize({ html }, options);
 
   document.stylesheets = await getResolvedStylesheetHrefs(document, options);
   document.virtualPath = rebase.to || (await getDocumentPath(document, options));
