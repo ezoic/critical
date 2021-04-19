@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const url = require('url');
 const fs = require('fs');
-const CleanCSS = require('clean-css');
+const csso = require('csso');
 const { promisify } = require('util');
 const findUp = require('find-up');
 const makeDir = require('make-dir');
@@ -12,6 +12,7 @@ const globby = require('globby');
 const isGlob = require('is-glob');
 const postcss = require('postcss');
 const postcssUrl = require('postcss-url');
+const safe = require('postcss-safe-parser');
 const Vinyl = require('vinyl');
 const oust = require('oust');
 const got = require('got');
@@ -282,12 +283,12 @@ async function rebaseAssets(css, from, to, method = 'rebase') {
 
     const result = await postcss()
       .use(postcssUrl({ url: transform }))
-      .process(css, { from, to });
+      .process(css, { from, to, parser: safe });
     rebased = result.css;
   } else if (from && to) {
     const result = await postcss()
       .use(postcssUrl({ url: method }))
-      .process(css, { from, to });
+      .process(css, { from, to, parser: safe });
     rebased = result.css;
   }
 
@@ -711,8 +712,8 @@ async function getStylesheet(document, filepath, options = {}) {
 
   const file = await vinylize({ filepath }, options);
 
-  var output = new CleanCSS({}).minify(file.contents);
-  file.contents = Buffer.from(output.styles, "utf-8");
+  var output = csso.minify(file.contents, { restructure: false });
+  file.contents = Buffer.from(output.css, "utf-8");
 
   // Restore original path for local files referenced from document and not from options
   if (!isRemote(originalPath) && !css) {
