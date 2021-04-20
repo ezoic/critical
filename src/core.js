@@ -1,9 +1,10 @@
 'use strict';
 
-const {EOL} = require('os');
+const { EOL } = require('os');
 const path = require('path');
 const chalk = require('chalk');
 const CleanCSS = require('clean-css');
+const csso = require('csso');
 const invokeMap = require('lodash/invokeMap');
 const pAll = require('p-all');
 const debug = require('debug')('critical:core');
@@ -12,13 +13,13 @@ const discard = require('postcss-discard');
 const prettier = require('prettier');
 const imageInliner = require('postcss-image-inliner');
 const penthouse = require('ez-penthouse');
-const {PAGE_UNLOADED_DURING_EXECUTION_ERROR_MESSAGE} = require('ez-penthouse/lib/core');
+const { PAGE_UNLOADED_DURING_EXECUTION_ERROR_MESSAGE } = require('ez-penthouse/lib/core');
 const inlineCritical = require('inline-critical');
-const {extractCss} = require('inline-critical/src/css');
+const { extractCss } = require('inline-critical/src/css');
 const parseCssUrls = require('css-url-parser');
-const {reduceAsync} = require('./array');
-const {NoCssError} = require('./errors');
-const {getDocument, getDocumentFromSource, token, getAssetPaths, isRemote, normalizePath} = require('./file');
+const { reduceAsync } = require('./array');
+const { NoCssError } = require('./errors');
+const { getDocument, getDocumentFromSource, token, getAssetPaths, isRemote, normalizePath } = require('./file');
 
 /**
  * Returns a string of combined and deduped css rules.
@@ -55,25 +56,25 @@ function combineCss(cssArray) {
  * @returns {string} Critical css for various dimensions combined and deduped
  */
 function callPenthouse(document, options) {
-  const {dimensions, width, height, userAgent, user, pass, penthouse: params = {}} = options;
-  const {customPageHeaders = {}} = params;
-  const {css: cssString, url} = document;
-  const config = {...params, cssString, url};
+  const { dimensions, width, height, userAgent, user, pass, penthouse: params = {} } = options;
+  const { customPageHeaders = {} } = params;
+  const { css: cssString, url } = document;
+  const config = { ...params, cssString, url };
   // Dimensions need to be sorted from small to wide. Otherwise the order gets corrupted
   const sizes = Array.isArray(dimensions)
     ? dimensions.slice().sort((a, b) => (a.width || 0) - (b.width || 0))
-    : [{width, height}];
+    : [{ width, height }];
 
   if (userAgent) {
     config.userAgent = userAgent;
   }
 
   if (user && pass) {
-    config.customPageHeaders = {...customPageHeaders, Authorization: `Basic ${token(user, pass)}`};
+    config.customPageHeaders = { ...customPageHeaders, Authorization: `Basic ${token(user, pass)}` };
   }
 
-  return sizes.map(({width, height}) => () => {
-    const result = penthouse({...config, width, height});
+  return sizes.map(({ width, height }) => () => {
+    const result = penthouse({ ...config, width, height });
     debug('Call penthouse with:', {
       ...config,
       width,
@@ -130,7 +131,7 @@ async function create(options = {}) {
   let criticalCSS;
   try {
     const tasks = callPenthouse(document, options);
-    const criticalStyles = await pAll(tasks, {concurrency});
+    const criticalStyles = await pAll(tasks, { concurrency });
     criticalCSS = combineCss(criticalStyles);
   } catch (error) {
     if (error.message === PAGE_UNLOADED_DURING_EXECUTION_ERROR_MESSAGE) {
@@ -173,12 +174,12 @@ async function create(options = {}) {
   // Post-process critical css
   if (postProcess.length > 0) {
     criticalCSS = await postcss(postProcess)
-      .process(criticalCSS, {from: undefined})
+      .process(criticalCSS, { from: undefined })
       .then((contents) => contents.css);
   }
 
   // Minify or prettify
-  criticalCSS = minify ? cleanCSS.minify(criticalCSS).styles : prettier.format(criticalCSS, {parser: 'css'});
+  criticalCSS = minify ? csso.minify(criticalCSS, { restructure: false }).css : prettier.format(criticalCSS, { parser: 'css' });
 
   const result = {
     css: criticalCSS,
@@ -188,7 +189,7 @@ async function create(options = {}) {
   const lazyUncritical = (orig, diff) =>
     function () {
       if (!this._uncritical) {
-        this._uncritical = extractCss(orig, diff);
+        this._uncritical = "";
       }
 
       return this._uncritical;
@@ -200,7 +201,7 @@ async function create(options = {}) {
 
   // Inline
   if (inline) {
-    const {replaceStylesheets} = inline;
+    const { replaceStylesheets } = inline;
 
     if (typeof replaceStylesheets === 'function') {
       inline.replaceStylesheets = await replaceStylesheets(document, result.uncritical);
@@ -221,7 +222,7 @@ async function create(options = {}) {
       inline.extract = extract;
     }
 
-    const inlined = inlineCritical(document.contents.toString(), criticalCSS, {...inline, basePath: document.cwd});
+    const inlined = inlineCritical(document.contents.toString(), criticalCSS, { ...inline, basePath: document.cwd });
     document.contents = Buffer.from(inlined);
   }
 
