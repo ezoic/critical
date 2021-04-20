@@ -1,6 +1,6 @@
 {
   "name": "ez-critical",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Extract & Inline Critical-path CSS from HTML",
   "author": "Addy Osmani",
   "license": "Apache-2.0",
@@ -15,7 +15,9 @@
     "index.js",
     "src"
   ],
-  "bin": "cli.js",
+  "bin": {
+    "ez-critical": "cli.js"
+  },
   "keywords": [
     "critical",
     "path",
